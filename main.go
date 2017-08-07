@@ -1,14 +1,14 @@
-package minioxf
+package main
 
 import (
-	"os"
-	"net/http"
 	"github.com/minio/minio-go"
 	"log"
+	"net/http"
+	"os"
 	"strings"
 )
 
-const bucketName  = "xf"
+const bucketName = "xf"
 
 var c *minio.Client
 
@@ -24,10 +24,10 @@ func minioHandler(w http.ResponseWriter, r *http.Request) {
 	if contentType == "" || file == "" || root == "" {
 		return
 	}
-	if root[len(root) - 1] != '/' {
+	if root[len(root)-1] != '/' {
 		root += "/"
 	}
-	if ! strings.HasPrefix(file, root) {
+	if !strings.HasPrefix(file, root) {
 		return
 	}
 	objectName := file[len(root):]

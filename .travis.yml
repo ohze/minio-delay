@@ -1,0 +1,14 @@
+sudo: required
+language: bash
+services: docker
+before_deploy:
+- docker run --rm -e CGO_ENABLED=0  -v "$PWD":/go/src/minioxf -w /go/src/minioxf golang:1.8-alpine3.6 ./build.sh
+deploy:
+  provider: releases
+  api_key:
+    secure: Ah66eQSefkjYUEfZXjL4HYQxvcdM005CMkGZbEMAGQukLWy4Cd7JT8p1pCZGiduPCHaTSH83qryd6gzpjnQsz5rbUQR3hLD2sJYGgyYvvhu8JQCcNeew5iR+0syY+U0hWJleGGUT5ZQG2FSoIZX/ziXpovKMay8cwX8+ecs9s6Vi85m9g7Q6wtzNwsuLsSaD5/px7836TvK+JR015Ef8AM4xQp6t+TSrMaIc1s4BwffFKc0M+AtZlOHZOzGPvw/TBHMEMNYwTw+n1On+u6ENL6jHS6ZL8r9qVJdD5ABqgdqyUIhaRzGBNT6gzSpP6Ulh4Tp0EEBuuM6Tb7aJk9f4s6lwBvjZMo3oWBS6mXOxGTGAf9t5FWmD09zQsVRCSjVJQDIxgr62mvYFYk9eZij/9JquWgOOMhy5EZyw2CgzJbwkhl0NZpT6OzjHEkaMmbGSI27+WR3WnKwYonxEsuA8ACoEowOplmJsw7nNH4FFPvqCS/mMOLmgqsE+ForiRdC0M5N9ctT0wCtCupAjxjpt7ZhpsEinGA44iEAhhJZJAzb3bs8HY/omYDcO0HafDSnWdUlaUfoqE6TLX16Exo5qbW9zP6dHNvjifkJzZzOceA7qo4Xj4p/nK/aAQKPwfGiNyAvHSONMTvAZz5ZKWGnC6ED++5IXOHMXNQhpMPDN2xo=
+  file: release/minioxf
+  skip_cleanup: true
+  on:
+    repo: ohze/minioxf
+    tags: true
