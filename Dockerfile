@@ -22,6 +22,6 @@ RUN \
     rm -rf /go/pkg /go/src /usr/local/go && \
     apk del .build-deps
 
-EXPOSE 9009
+EXPOSE 9004
 
 CMD ["minioxf"]

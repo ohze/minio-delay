@@ -48,7 +48,7 @@ func main() {
 		log.Fatalln(err)
 	}
 	http.HandleFunc("/", minioHandler)
-	err = http.ListenAndServe(":9009", nil)
+	err = http.ListenAndServe(":9004", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
