@@ -1,0 +1,19 @@
+FROM alpine:3.6
+
+MAINTAINER Ohze JSC <thanhbv@sandinh.net>
+
+ENV MINIO_ENDPOINT=lb.minio:9000/ \
+    MINIO_KEY=minio \
+    MINIO_SECRET=minio123
+
+RUN \
+    apk add --no-cache ca-certificates && \
+    apk add --no-cache --virtual .build-deps curl && \
+    echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf && \
+    curl https://github.com/ohze/minioxf/releases/download/v0.1.0/minioxf > /usr/bin/minioxf && \
+    chmod +x /usr/bin/minioxf && \
+    apk del .build-deps
+
+EXPOSE 9009
+
+CMD ["minioxf"]

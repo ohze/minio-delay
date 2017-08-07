@@ -2,7 +2,7 @@ sudo: required
 language: bash
 services: docker
 before_deploy:
-- docker run --rm -e CGO_ENABLED=0  -v "$PWD":/go/src/minioxf -w /go/src/minioxf golang:1.8-alpine3.6 ./build.sh
+- docker run --rm -v "$PWD":/go/src/minioxf -w /go/src/minioxf golang:1.8-alpine3.6 ./build.sh
 deploy:
   provider: releases
   api_key:
