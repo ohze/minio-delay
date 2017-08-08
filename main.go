@@ -18,27 +18,21 @@ func minioHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.ParseForm()
-	contentType := r.Form.Get("content-type")
-	file := r.Form.Get("file")
-	root := r.Form.Get("root")
-	if contentType == "" || file == "" || root == "" {
+	xr, err := newXfReq(r.Form)
+	if err != nil {
+		log.Print(err)
 		return
 	}
-	if root[len(root)-1] != '/' {
-		root += "/"
-	}
-	if !strings.HasPrefix(file, root) {
-		log.Printf("invalid file: %v not in %v", file, root)
+	if xr == nil {
 		return
 	}
-	objectName := file[len(root):]
-	log.Printf("upload: %v, %v, %v", root, objectName, contentType)
+	log.Printf("upload: %v", xr)
 	//http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/
 	//https://github.com/Metafused/s3-fast-upload-golang/blob/master/main.go
 	go func() {
-		n, err := c.FPutObject(bucketName, objectName, file, contentType)
+		n, err := c.FPutObject(bucketName, xr.objectName, xr.file, xr.contentType)
 		if err != nil {
-			log.Printf("upload fail: %v, %v, %v\n%v:%v", root, objectName, contentType, n, err)
+			log.Printf("upload fail: %v\n%v:%v", xr, n, err)
 		}
 	}()
 }
