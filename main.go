@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const bucketName = "xf"
+const bucketName = "xenforo"
 
 var c *minio.Client
 
@@ -28,13 +28,19 @@ func minioHandler(w http.ResponseWriter, r *http.Request) {
 		root += "/"
 	}
 	if !strings.HasPrefix(file, root) {
+		log.Printf("invalid file: %v not in %v", file, root)
 		return
 	}
 	objectName := file[len(root):]
+	log.Printf("upload: %v, %v, %v", root, objectName, contentType)
 	//http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/
 	//https://github.com/Metafused/s3-fast-upload-golang/blob/master/main.go
-	go c.FPutObject(bucketName, objectName, file, contentType)
-	log.Printf("uploaded: %v, %v, %v", root, objectName, contentType)
+	go func() {
+		n, err := c.FPutObject(bucketName, objectName, file, contentType)
+		if err != nil {
+			log.Printf("upload fail: %v, %v, %v\n%v:%v", root, objectName, contentType, n, err)
+		}
+	}()
 }
 
 func main() {
@@ -51,5 +57,7 @@ func main() {
 	err = http.ListenAndServe(":9004", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
+	} else {
+		log.Print("listening :9004")
 	}
 }
