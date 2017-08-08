@@ -7,7 +7,8 @@ ENV GOPATH=/go \
  CGO_ENABLED=0 \
  MINIO_ENDPOINT=lb.minio:9000/ \
  MINIO_KEY=minio \
- MINIO_SECRET=minio123
+ MINIO_SECRET=minio123 \
+ MINIO_HTTPS=true
 
 
 WORKDIR /go/src/github.com/ohze/

@@ -49,7 +49,7 @@ func main() {
 		os.Getenv("MINIO_ENDPOINT"),
 		os.Getenv("MINIO_KEY"),
 		os.Getenv("MINIO_SECRET"),
-		true)
+		strings.ToLower(os.Getenv("MINIO_HTTPS")) == "true")
 	if err != nil {
 		log.Fatalln(err)
 	}
