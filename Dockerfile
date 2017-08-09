@@ -2,27 +2,24 @@ FROM alpine:3.6
 
 MAINTAINER Ohze JSC <thanhbv@sandinh.net>
 
-ENV GOPATH=/go \
- PATH=$PATH:/go/bin \
- CGO_ENABLED=0 \
- MINIO_ENDPOINT=lb.minio:9000/ \
- MINIO_KEY=minio \
- MINIO_SECRET=minio123 \
- MINIO_HTTPS=true
+ARG VERSION_TAG=v1.0.0
 
-
-WORKDIR /go/src/github.com/ohze/
+ENV MD_ENDPOINT=lb.minio:9000/ \
+    MD_KEY=minio \
+    MD_SECRET=minio123 \
+    MD_HTTPS=true \
+    MD_BUCKET_NAME=xenforo \
+    MD_PORT=":9004"
 
 RUN \
     apk add --no-cache ca-certificates && \
-    apk add --no-cache --virtual .build-deps go git musl-dev && \
+    apk add --no-cache --virtual .build-deps curl && \
     echo 'hosts: files mdns4_minimal [NOTFOUND=return] dns mdns4' >> /etc/nsswitch.conf && \
-    go get -v -d github.com/ohze/minioxf && \
-    cd /go/src/github.com/ohze/minioxf && \
-    go install -v -ldflags "-w -s" && \
-    rm -rf /go/pkg /go/src /usr/local/go && \
+    curl -L https://github.com/ohze/minio-delayed-server/releases/download/$VERSION_TAG/minio-delayed-server \
+        > /usr/bin/minio-delayed-server && \
+    chmod +x /usr/bin/minio-delayed-server && \
     apk del .build-deps
 
-EXPOSE 9004
+EXPOSE $MD_PORT
 
-CMD ["minioxf"]
+CMD ["minio-delayed-server"]

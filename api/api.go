@@ -9,15 +9,18 @@ import (
 	"path/filepath"
 )
 
-const bucketName = "xenforo"
-
 //https://golang.org/doc/effective_go.html#embedding
-type MinioXf struct {
+type DelayedApi struct {
+	bucketName string
 	*minio.Client
 }
 
+func New(c *minio.Client, bucketName string) *DelayedApi {
+	return &DelayedApi{bucketName: bucketName, Client: c}
+}
+
 //minio.Client.FPutObject with metadata
-func (c * MinioXf)fPut(bucketName, objectName, filePath string, metadata map[string][]string) (n int64, err error)   {
+func (d *DelayedApi)fPut(objectName, filePath string, metadata map[string][]string) (n int64, err error)   {
 	// Open the referenced file.
 	fileReader, err := os.Open(filePath)
 	// If any error fail quickly here.
@@ -45,16 +48,16 @@ func (c * MinioXf)fPut(bucketName, objectName, filePath string, metadata map[str
 		metadata["Content-Type"] = []string{contentType}
 	}
 
-	return c.PutObjectWithSize(bucketName, objectName, fileReader, fileSize, metadata, nil)
+	return d.PutObjectWithSize(d.bucketName, objectName, fileReader, fileSize, metadata, nil)
 }
 
 //post file `file` to `object` will all metadata from PostForm (include `Content-Type`)
-func (c *MinioXf) Handler() http.HandlerFunc {
+func (d *DelayedApi) Handler() http.HandlerFunc {
 	return func (w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			c.handlePost(w, r)
+			d.handlePost(w, r)
 		} else if r.Method == "DELETE" {
-			c.handleDelete(w, r)
+			d.handleDelete(w, r)
 		} else {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
@@ -62,7 +65,7 @@ func (c *MinioXf) Handler() http.HandlerFunc {
 	}
 }
 
-func (c *MinioXf) handlePost(w http.ResponseWriter, r *http.Request) {
+func (d *DelayedApi) handlePost(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	m := r.PostForm
 	file := m.Get("file")
@@ -77,14 +80,14 @@ func (c *MinioXf) handlePost(w http.ResponseWriter, r *http.Request) {
 	//http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/
 	//https://github.com/Metafused/s3-fast-upload-golang/blob/master/main.go
 	go func() {
-		n, err := c.fPut(bucketName, object, file, m)
+		n, err := d.fPut(object, file, m)
 		if err != nil {
 			log.Printf("upload fail: %v -> %v,%v\n%v:%v", file, object, m, n, err)
 		}
 	}()
 }
 
-func (c *MinioXf) handleDelete(w http.ResponseWriter, r *http.Request) {
+func (d *DelayedApi) handleDelete(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	objects := r.Form["objects"]
 	log.Printf("delete %v. Form: %v", objects, r.Form)
@@ -93,13 +96,15 @@ func (c *MinioXf) handleDelete(w http.ResponseWriter, r *http.Request) {
 	}
 	go func() {
 		for _, object := range objects {
-			if err := c.RemoveObject(bucketName, object); err != nil {
+			if err := d.RemoveObject(d.bucketName, object); err != nil {
 				log.Printf("delete fail: %v: %v", objects, err)
 			}
 		}
+
+		//hmm. Don't know why minio.Client.RemoveObjects (delete multiple object) is failed. We use RemoveObject for now
 		//n := len(objects)
 		//if n == 1 {
-		//	if err := c.RemoveObject(bucketName, objects[0]); err != nil {
+		//	if err := d.RemoveObject(bucketName, objects[0]); err != nil {
 		//		log.Printf("delete fail: %v: %v", objects, err)
 		//	}
 		//} else {
@@ -108,7 +113,7 @@ func (c *MinioXf) handleDelete(w http.ResponseWriter, r *http.Request) {
 		//	for _, object := range objects {
 		//		objectsCh <- object
 		//	}
-		//	errCh := c.RemoveObjects(bucketName, objectsCh)
+		//	errCh := d.RemoveObjects(bucketName, objectsCh)
 		//	for e := range errCh {
 		//		log.Printf("delete fail: %v: %v", e.ObjectName, e.Err)
 		//	}
