@@ -49,30 +49,63 @@ func (c * MinioXf)fPut(bucketName, objectName, filePath string, metadata map[str
 }
 
 //post file `file` to `object` will all metadata from PostForm (include `Content-Type`)
-func (c *MinioXf) PostHandler() http.HandlerFunc {
+func (c *MinioXf) Handler() http.HandlerFunc {
 	return func (w http.ResponseWriter, r *http.Request) {
-		if r.Method != "POST" {
+		if r.Method == "POST" {
+			c.handlePost(w, r)
+		} else if r.Method == "DELETE" {
+			c.handleDelete(w, r)
+		} else {
 			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
 		}
-		r.ParseForm()
-		m := r.PostForm
-		file := m.Get("file")
-		object := m.Get("object")
-		if file == "" || object == "" {
-			return
-		}
-		delete(m, "file")
-		delete(m, "object")
 
-		log.Printf("upload: %v -> %v", file, object)
-		//http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/
-		//https://github.com/Metafused/s3-fast-upload-golang/blob/master/main.go
-		go func() {
-			n, err := c.fPut(bucketName, object, file, m)
-			if err != nil {
-				log.Printf("upload fail: %v -> %v,%v\n%v:%v", file, object, m, n, err)
-			}
-		}()
 	}
+}
+
+func (c *MinioXf) handlePost(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	m := r.PostForm
+	file := m.Get("file")
+	object := m.Get("object")
+	if file == "" || object == "" {
+		return
+	}
+	delete(m, "file")
+	delete(m, "object")
+
+	log.Printf("upload: %v -> %v", file, object)
+	//http://marcio.io/2015/07/handling-1-million-requests-per-minute-with-golang/
+	//https://github.com/Metafused/s3-fast-upload-golang/blob/master/main.go
+	go func() {
+		n, err := c.fPut(bucketName, object, file, m)
+		if err != nil {
+			log.Printf("upload fail: %v -> %v,%v\n%v:%v", file, object, m, n, err)
+		}
+	}()
+}
+
+func (c *MinioXf) handleDelete(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	objects := r.Form["objects"]
+	if len(objects) == 0 {
+		return
+	}
+	log.Printf("delete: %v", objects)
+	go func() {
+		n := len(objects)
+		if n == 1 {
+			if err := c.RemoveObject(bucketName, objects[0]); err != nil {
+				log.Printf("delete fail: %v: %v", objects, err)
+			}
+		} else {
+			objectsCh := make(chan string, n)
+			for _, object := range objects {
+				objectsCh <- object
+			}
+			errCh := c.RemoveObjects(bucketName, objectsCh)
+			for e := range errCh {
+				log.Printf("delete fail: %v: %v", e.ObjectName, e.Err)
+			}
+		}
+	}()
 }
