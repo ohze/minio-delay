@@ -19,11 +19,10 @@ func main() {
 		log.Fatalln(err)
 	}
 	xf := &api.MinioXf{Client: c}
-	http.Handle("/", xf.Handler())
-	err = http.ListenAndServe(":9004", nil)
+	err = http.ListenAndServe(":9004", xf.Handler())
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	} else {
-		log.Print("listening :9004")
+		log.Print("listening :9004") //hmm. This is not printed
 	}
 }

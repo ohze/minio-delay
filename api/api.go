@@ -87,25 +87,31 @@ func (c *MinioXf) handlePost(w http.ResponseWriter, r *http.Request) {
 func (c *MinioXf) handleDelete(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	objects := r.Form["objects"]
+	log.Printf("delete %v. Form: %v", objects, r.Form)
 	if len(objects) == 0 {
 		return
 	}
-	log.Printf("delete: %v", objects)
 	go func() {
-		n := len(objects)
-		if n == 1 {
-			if err := c.RemoveObject(bucketName, objects[0]); err != nil {
+		for _, object := range objects {
+			if err := c.RemoveObject(bucketName, object); err != nil {
 				log.Printf("delete fail: %v: %v", objects, err)
 			}
-		} else {
-			objectsCh := make(chan string, n)
-			for _, object := range objects {
-				objectsCh <- object
-			}
-			errCh := c.RemoveObjects(bucketName, objectsCh)
-			for e := range errCh {
-				log.Printf("delete fail: %v: %v", e.ObjectName, e.Err)
-			}
 		}
+		//n := len(objects)
+		//if n == 1 {
+		//	if err := c.RemoveObject(bucketName, objects[0]); err != nil {
+		//		log.Printf("delete fail: %v: %v", objects, err)
+		//	}
+		//} else {
+		//	objectsCh := make(chan string, n)
+		//	//defer close(objectsCh)
+		//	for _, object := range objects {
+		//		objectsCh <- object
+		//	}
+		//	errCh := c.RemoveObjects(bucketName, objectsCh)
+		//	for e := range errCh {
+		//		log.Printf("delete fail: %v: %v", e.ObjectName, e.Err)
+		//	}
+		//}
 	}()
 }
